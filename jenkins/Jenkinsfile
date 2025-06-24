@@ -50,10 +50,8 @@ pipeline {
 
     stage('Docker Build') {
       steps {
-        script {
-          docker.build("${REGISTRY_URL}/${IMAGE_BACKEND}:${env.BUILD_NUMBER}", "./backend")
-          docker.build("${REGISTRY_URL}/${IMAGE_FRONTEND}:${env.BUILD_NUMBER}", "./frontend")
-        }
+        sh "docker build -t ${REGISTRY_URL}/${IMAGE_BACKEND}:${params.BUILD_ENV} ./backend"
+        sh "docker build -t ${REGISTRY_URL}/${IMAGE_FRONTEND}:${params.BUILD_ENV} ./frontend"
       }
     }
 
