@@ -56,31 +56,16 @@ pipeline {
     }
 
 stage('Docker Push') {
-  steps {
-    script {
-      // Deine Registry-URL
-      def REPOSITORY = "registrykurs1.azurecr.io"
-      
-      // Die ID deiner Jenkins Credentials für Azure (muss "azure-credentials" sein)
-      // Diese Credentials müssen als "Username with password" hinterlegt sein.
-      withCredentials([usernamePassword(credentialsId: 'azure-credentials', usernameVariable: 'ACR_USERNAME', passwordVariable: 'ACR_PASSWORD')]) {
-        // Docker Login bei deiner Azure Container Registry
-        sh "docker login ${REPOSITORY} -u ${ACR_USERNAME} -p ${ACR_PASSWORD}"
-
-        // Backend-Image pushen (Beispiel)
-        // Ersetze 'your-backend-image-name' durch den tatsächlichen Namen deines Backend-Images
-        // 'env.BUILD_NUMBER' ist eine Standard-Jenkins-Variable für die Build-Nummer
-        sh "docker push ${REPOSITORY}/your-backend-image-name:${env.BUILD_NUMBER}"
-
-        // Frontend-Image pushen (Beispiel)
-        // Ersetze 'your-frontend-image-name' durch den tatsächlichen Namen deines Frontend-Images
-        sh "docker push ${REPOSITORY}/your-frontend-image-name:${env.BUILD_NUMBER}"
-
-        // Optional: Logout nach dem Push
-        sh "docker logout ${REPOSITORY}"
-      }
+    steps {
+        script {
+            withCredentials([usernamePassword(credentialsId: 'your-acr-credentials-id', passwordVariable: 'ACR_PASSWORD', usernameVariable: 'ACR_USERNAME')]) {
+                sh "docker login registrykurs1.azurecr.io -u ${env.ACR_USERNAME} --password-stdin <<< ${env.ACR_PASSWORD}"
+          
+                sh 'docker push registrykurs1.azurecr.io/frontend-app:dev'
+               
+            }
+        }
     }
-  }
 }
 
     stage('Deploy') {
