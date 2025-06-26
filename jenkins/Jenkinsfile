@@ -2,7 +2,11 @@ pipeline {
   agent any
 
   parameters {
-    string(name: 'BUILD_ENV', defaultValue: 'dev', description: 'dev oder prod')
+    choice(
+      name: 'BUILD_ENV',
+      choices: ['dev', 'prod'],
+      description: 'Wählen Sie die Zielumgebung (dev oder prod)'
+    )
   }
 
   environment {
@@ -32,8 +36,7 @@ pipeline {
     stage('Build Frontend') {
       steps {
         dir('frontend') {
-          sh "npm install"
-          sh "npm run build"
+          sh "npm install && npm run build"
         }
       }
     }
@@ -48,16 +51,22 @@ pipeline {
 
     stage('Docker Build') {
       steps {
-        sh "docker build -t ${REGISTRY_URL}/${IMAGE_BACKEND}:${params.BUILD_ENV} ./backend"
-        sh "docker build -t ${REGISTRY_URL}/${IMAGE_FRONTEND}:${params.BUILD_ENV} ./frontend"
+        sh """
+          docker build -t ${REGISTRY_URL}/${IMAGE_BACKEND}:${params.BUILD_ENV} ./backend
+          docker build -t ${REGISTRY_URL}/${IMAGE_FRONTEND}:${params.BUILD_ENV} ./frontend
+        """
       }
     }
 
     stage('Docker Push') {
       steps {
-        withCredentials([usernamePassword(credentialsId: 'azure-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+        withCredentials([usernamePassword(
+          credentialsId: 'azure-credentials',
+          usernameVariable: 'DOCKER_USER',
+          passwordVariable: 'DOCKER_PASS'
+        )]) {
           sh """
-            echo \$DOCKER_PASS | docker login $REGISTRY_URL -u \$DOCKER_USER --password-stdin
+            echo "$DOCKER_PASS" | docker login $REGISTRY_URL -u "$DOCKER_USER" --password-stdin
             docker push ${REGISTRY_URL}/${IMAGE_BACKEND}:${params.BUILD_ENV}
             docker push ${REGISTRY_URL}/${IMAGE_FRONTEND}:${params.BUILD_ENV}
           """
@@ -65,55 +74,44 @@ pipeline {
       }
     }
 
-    stage('Deploy Dev') {
-      when {
-        expression { params.BUILD_ENV == 'dev' }
-      }
+    stage('Deploy to Kubernetes') {
       steps {
-        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-          withCredentials([file(credentialsId: 'kubeconfig-talha-dev', variable: 'KUBECONFIG')]) {
-            withEnv(["KUBECONFIG=$KUBECONFIG"]) {
-              sh """
-                kubectl apply -f kubernetes/k8s_dev.yaml --namespace=talha-dev
-                kubectl rollout status deployment/backend -n talha-dev --timeout=300s
-                kubectl rollout status deployment/frontend -n talha-dev --timeout=300s
-              """
-            }
+        script {
+          def kubeconfigId = params.BUILD_ENV == 'dev' ? 'kubeconfig-dev' : 'kubeconfig-prod'
+          def namespace = params.BUILD_ENV == 'dev' ? 'talha-dev' : 'talha-prod'
+          def manifestPath = "k8s/${params.BUILD_ENV}"
+
+          withCredentials([file(credentialsId: kubeconfigId, variable: 'KUBECONFIG')]) {
+            sh """
+              export KUBECONFIG="$KUBECONFIG"
+              kubectl apply -f ${manifestPath} --namespace=${namespace}
+              kubectl rollout status deployment/backend -n ${namespace} --timeout=300s
+              kubectl rollout status deployment/frontend -n ${namespace} --timeout=300s
+            """
           }
         }
       }
     }
-
-    stage('Deploy Prod') {
-      when {
-        expression { params.BUILD_ENV == 'prod' }
-      }
-      steps {
-        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-          withCredentials([file(credentialsId: 'kubeconfig-talha-prod', variable: 'KUBECONFIG')]) {
-            withEnv(["KUBECONFIG=$KUBECONFIG"]) {
-              sh """
-                kubectl apply -f kubernetes/k8s_prod.yaml --namespace=prod
-                kubectl rollout status deployment/backend -n prod --timeout=300s
-                kubectl rollout status deployment/frontend -n prod --timeout=300s
-              """
-            }
-          }
-        }
-      }
-    }
-
-  } // ENDE stages
+  }
 
   post {
     always {
-      sh 'rm -rf ./*'
+      cleanWs()
+      echo "Pipeline abgeschlossen für Umgebung: ${params.BUILD_ENV}"
     }
+
     success {
-      echo "✅ Jenkins-Pipeline erfolgreich abgeschlossen!"
+      slackSend(
+        color: 'good',
+        message: "✅ Erfolgreich deployed: Build #${env.BUILD_NUMBER} → `${params.BUILD_ENV}`"
+      )
     }
+
     failure {
-      echo "❌ Fehler in der Jenkins-Pipeline aufgetreten."
+      slackSend(
+        color: 'danger',
+        message: "❌ Fehler beim Deployment: Build #${env.BUILD_NUMBER} → `${params.BUILD_ENV}`"
+      )
     }
   }
 }
