@@ -78,7 +78,7 @@ pipeline {
     stage('Deploy') {
       steps {
         script {
-          def kubeconfig = params.BUILD_ENV == 'dev' ? 'kubeconfig-talha-dev' : 'kubeconfig-talha-prod'
+          def kubeconfig = params.BUILD_ENV == 'talha-dev' ? 'kubeconfig-talha-dev' : 'kubeconfig-talha-prod'
           def namespace = params.BUILD_ENV
           def manifest = "k8s/${params.BUILD_ENV}"
 
