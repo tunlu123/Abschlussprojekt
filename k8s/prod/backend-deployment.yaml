@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: registrykurs1.azurecr.io/backend-app:latest
+        image: registrykurs1.azurecr.io/backend-app:talha-dev
         ports:
         - containerPort: 8080
         env:
