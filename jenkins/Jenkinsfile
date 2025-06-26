@@ -10,8 +10,8 @@ pipeline {
   }
 
   environment {
-    IMAGE_BACKEND = "my-backend-image"
-    IMAGE_FRONTEND = "my-frontend-image"
+    IMAGE_BACKEND = "backend-app"
+    IMAGE_FRONTEND = "frontend-app"
     REGISTRY_URL = "registrykurs1.azurecr.io"
   }
 
