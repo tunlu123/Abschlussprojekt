@@ -135,18 +135,13 @@ pipeline {
     }
 
     success {
-      echo(
-        color: 'good',
-        message: "✅ Erfolgreich deployed: Build #${env.BUILD_NUMBER} → `${params.BUILD_ENV}`"
-      )
+      echo "✅ Erfolgreich deployed: Build #${env.BUILD_NUMBER} → `${params.BUILD_ENV}`"
     }
 
     failure {
-      echo(
-        color: 'danger',
-        message: "❌ Fehler beim Deployment: Build #${env.BUILD_NUMBER} → `${params.BUILD_ENV}`"
-      )
+      echo "❌ Fehler beim Deployment: Build #${env.BUILD_NUMBER} → `${params.BUILD_ENV}`"
       
+    
       // Fehlerdiagnose bei Failure
       script {
         withCredentials([file(credentialsId: env.KUBECONFIG_ID, variable: 'KUBECONFIG')]) {
