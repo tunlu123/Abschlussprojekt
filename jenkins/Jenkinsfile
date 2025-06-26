@@ -112,12 +112,6 @@ pipeline {
             # Anwenden der Kubernetes-Manifeste
             kubectl apply -f ${env.MANIFEST_PATH} --namespace=${env.NAMESPACE}
             
-            # Deployment-Status überwachen
-            echo "⏳ Warte auf Backend-Deployment..."
-            kubectl rollout status deployment/backend -n ${env.NAMESPACE} --timeout=${DEPLOYMENT_TIMEOUT}s
-            
-            echo "⏳ Warte auf Frontend-Deployment..."
-            kubectl rollout status deployment/frontend -n ${env.NAMESPACE} --timeout=${DEPLOYMENT_TIMEOUT}s
             
             # Debug-Informationen
             if [ "\$KUBE_DEBUG" = "true" ]; then
