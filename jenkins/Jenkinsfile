@@ -135,14 +135,14 @@ pipeline {
     }
 
     success {
-      slackSend(
+      echo(
         color: 'good',
         message: "✅ Erfolgreich deployed: Build #${env.BUILD_NUMBER} → `${params.BUILD_ENV}`"
       )
     }
 
     failure {
-      slackSend(
+      echo(
         color: 'danger',
         message: "❌ Fehler beim Deployment: Build #${env.BUILD_NUMBER} → `${params.BUILD_ENV}`"
       )
