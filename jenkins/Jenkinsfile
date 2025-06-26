@@ -106,7 +106,7 @@ pipeline {
       steps {
         withCredentials([file(credentialsId: env.KUBECONFIG_ID, variable: 'KUBECONFIG')]) {
           sh """
-            export KUBECONFIG="\$KUBECONFIG"
+            export KUBECONFIG="$KUBECONFIG"
             echo "🚀 Starte Deployment..."
             
             # Anwenden der Kubernetes-Manifeste
